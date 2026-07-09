@@ -3,351 +3,265 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mine Slot - Mine & Destroy</title>
+    <title>Mine Slot Pro</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            font-family: 'Segoe UI', Arial, sans-serif;
-            background: #1e1e1e;
-            color: #fff;
+            margin: 0;
+            background-color: #111;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
+            justify-content: center;
             min-height: 100vh;
-            padding: 10px;
+            font-family: 'Arial Black', sans-serif;
+            color: white;
+            user-select: none;
         }
-        .game-container {
-            background: #3c3c3c;
-            border: 4px solid #2c2c2c;
-            border-radius: 12px;
-            padding: 15px;
-            width: 100%;
-            max-width: 480px;
-            box-shadow: 0 12px 35px rgba(0,0,0,0.8);
-            text-align: center;
-        }
-        h1 {
-            color: #ffff55;
-            text-shadow: 2px 2px #555500;
-            margin-bottom: 15px;
-            font-size: 26px;
-        }
-        .stats {
+        #ui-container {
+            width: 400px;
             display: flex;
             justify-content: space-between;
-            background: #111;
-            padding: 10px;
-            border-radius: 6px;
-            margin-bottom: 15px;
-            font-size: 18px;
-        }
-        .highlight { color: #55ff55; font-weight: bold; }
-        
-        /* Зона кирок (верхняя панель) */
-        .pickaxe-row {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 6px;
             background: #222;
-            padding: 8px;
-            border-radius: 6px 6px 0 0;
-            border: 3px solid #555;
+            padding: 10px;
+            border: 3px solid #444;
             border-bottom: none;
+            box-sizing: border-box;
         }
-        .pickaxe-cell {
-            aspect-ratio: 1;
-            background: #444;
-            border: 2px dashed #888;
-            border-radius: 4px;
+        #game-div {
+            border: 3px solid #444;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+        }
+        .controls {
+            width: 400px;
+            background: #222;
+            border: 3px solid #444;
+            border-top: none;
+            padding: 10px;
+            box-sizing: border-box;
             display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 24px;
+            flex-direction: column;
+            gap: 8px;
         }
-
-        /* Шахта с блоками */
-        .mine-grid {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 6px;
-            background: #141414;
-            padding: 8px;
-            border-radius: 0 0 6px 6px;
-            border: 3px solid #555;
-            margin-bottom: 15px;
-        }
-        .block-cell {
-            aspect-ratio: 1;
-            border-radius: 4px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 22px;
-            font-weight: bold;
-            transition: all 0.2s ease;
-        }
-        
-        /* Стили блоков */
-        .b-dirt { background: #866043; border: 2px solid #573d2a; }
-        .b-stone { background: #737373; border: 2px solid #515151; }
-        .b-gold { background: #fdb813; border: 2px solid #b8860b; color: #fff; }
-        .b-diamond { background: #4dedf4; border: 2px solid #00a8b5; }
-        .b-bedrock { background: #111111; border: 2px solid #000; }
-        
-        /* Анимация разрушения */
-        .destroyed {
-            transform: scale(0);
-            opacity: 0;
-        }
-        .digging {
-            background: #ff5555 !important;
-            transform: scale(1.1);
-        }
-
-        /* Кнопки управления ставками */
-        .controls { display: flex; flex-direction: column; gap: 10px; }
-        .bet-buttons {
+        .bet-row {
             display: flex;
             justify-content: space-between;
             gap: 5px;
         }
-        .btn-action {
+        button {
             background: #555;
             color: white;
-            border: none;
+            border: 2px solid #777;
             padding: 8px;
             font-weight: bold;
             cursor: pointer;
-            border-radius: 4px;
             flex: 1;
         }
-        .btn-action:hover { background: #666; }
-        
+        button:hover { background: #666; }
         #spin-btn {
-            background: #ff5555;
-            color: white;
-            border: none;
-            padding: 14px;
-            font-size: 20px;
-            font-weight: bold;
-            border-radius: 6px;
-            cursor: pointer;
-            box-shadow: 0 4px #aa0000;
-            text-transform: uppercase;
-        }
-        #spin-btn:hover { background: #ff6666; }
-        #spin-btn:active { transform: translateY(4px); box-shadow: none; }
-        #spin-btn:disabled { background: #444; box-shadow: none; cursor: not-allowed; }
-
-        .win-display {
-            height: 25px;
-            margin-top: 10px;
+            background: #00aa00;
+            border: 2px solid #00ff00;
+            padding: 12px;
             font-size: 18px;
-            font-weight: bold;
-            color: #55ff55;
         }
+        #spin-btn:hover { background: #00cc00; }
+        #spin-btn:disabled { background: #333; border-color: #555; cursor: not-allowed; }
+        .yellow { color: #ffff55; }
+        .green { color: #55ff55; }
     </style>
 </head>
 <body>
 
-<div class="game-container">
-    <h1>MINE SLOT</h1>
-    
-    <div class="stats">
-        <div>Баланс: <span id="balance" class="highlight">$1,000</span></div>
-        <div>Ставка: <span id="bet" class="highlight">10</span></div>
+    <div id="ui-container">
+        <div>БАЛАНС: <span id="balance-txt" class="green">$100,000</span></div>
+        <div>СТАВКА: <span id="bet-txt" class="yellow">200</span></div>
     </div>
 
-    <!-- Ряд падающих кирок -->
-    <div class="pickaxe-row" id="pickaxe-row">
-        <div class="pickaxe-cell">❓</div>
-        <div class="pickaxe-cell">❓</div>
-        <div class="pickaxe-cell">❓</div>
-        <div class="pickaxe-cell">❓</div>
-        <div class="pickaxe-cell">❓</div>
-    </div>
-
-    <!-- Игровое поле с рудой -->
-    <div class="mine-grid" id="mine-grid"></div>
+    <div id="game-div"></div>
 
     <div class="controls">
-        <!-- Настройка ставок: минимум, +10, +100, Максимум -->
-        <div class="bet-buttons">
-            <button class="btn-action" onclick="adjustBet('min')">МИН</button>
-            <button class="btn-action" onclick="adjustBet(10)">+10</button>
-            <button class="btn-action" onclick="adjustBet(100)">+100</button>
-            <button class="btn-action" onclick="adjustBet('max')">МАКС</button>
+        <div class="bet-row">
+            <button onclick="changeBet('min')">МИН</button>
+            <button onclick="changeBet(10)">+10</button>
+            <button onclick="changeBet(100)">+100</button>
+            <button onclick="changeBet('max')">МАКС</button>
         </div>
-        <button id="spin-btn" onclick="startDigging()">СТАРТ (КОПАТЬ)</button>
+        <button id="spin-btn" onclick="pressSpin()">ИГРАТЬ (ПАДЕНИЕ КИРОК)</button>
     </div>
 
-    <div class="win-display" id="win-display"></div>
-</div>
-
 <script>
-    // Типы кирок и их разрушительная сила (сколько блоков ломают)
-    const PICKAXES = [
-        { icon: '🪵', power: 1, name: 'Деревянная' },
-        { icon: '🪙', power: 2, name: 'Железная' },
-        { icon: '💎', power: 4, name: 'Алмазная' }
-    ];
+    let balance = 100000;
+    let bet = 200;
+    let isPlaying = false;
+    let phaserGame;
 
-    // Типы блоков под землей и выплаты (множители ставки)
-    const BLOCK_TYPES = {
-        dirt: { icon: '🟫', class: 'b-dirt', payout: 0.2 },
-        stone: { icon: '⬜', class: 'b-stone', payout: 0.5 },
-        gold: { icon: '🟨', class: 'b-gold', payout: 2.0 },
-        diamond: { icon: '💎', class: 'b-diamond', payout: 5.0 },
-        bedrock: { icon: '⬛', class: 'b-bedrock', payout: 0 } // Неразрушимый
+    // Конфигурация Phaser 3
+    const config = {
+        type: Phaser.AUTO,
+        width: 400,
+        height: 500,
+        parent: 'game-div',
+        backgroundColor: '#2d1d13',
+        physics: {
+            default: 'arcade',
+            arcade: { debug: false }
+        },
+        scene: {
+            preload: preload,
+            create: create,
+            update: update
+        }
     };
 
-    const COLS = 5;
-    const ROWS = 5;
-    let balance = 1000;
-    let currentBet = 10;
-    let isPlaying = false;
-    let gridMatrix = [];
+    phaserGame = new Phaser.Game(config);
+    let sceneRef;
+    let blocksGroup;
+    let pickaxesGroup;
 
-    const mineGrid = document.getElementById('mine-grid');
-    const pickaxeRow = document.getElementById('pickaxe-row');
-    const balanceTab = document.getElementById('balance');
-    const betTab = document.getElementById('bet');
-    const spinBtn = document.getElementById('spin-btn');
-    const winDisplay = document.getElementById('win-display');
+    function preload() {
+        sceneRef = this;
+        // Генерируем текстуры «на лету», чтобы тебе не надо было скачивать картинки
+        createPixelTexture(this, 'dirt', '#866043');
+        createPixelTexture(this, 'stone', '#737373');
+        createPixelTexture(this, 'gold', '#fdb813');
+        createPixelTexture(this, 'diamond', '#4dedf4');
+        createPixelTexture(this, 'pickaxe', '#ffffff', true); // Текстура кирки
+    }
 
-    // Генерация шахты при запуске
-    function createMine() {
-        mineGrid.innerHTML = '';
-        gridMatrix = [];
+    function create() {
+        blocksGroup = this.physics.add.staticGroup();
+        pickaxesGroup = this.physics.add.group();
+
+        // Отрисовка сетки блоков (5 столбцов, 6 строк)
+        generateGrid();
+
+        // Настройка столкновений: когда кирка касается блока
+        this.physics.add.overlap(pickaxesGroup, blocksGroup, hitBlock, null, this);
+    }
+
+    function update() {
+        // Если кирка улетела за нижний экран — уничтожаем её
+        pickaxesGroup.children.iterate((pick) => {
+            if (pick && pick.y > 550) {
+                pick.destroy();
+            }
+        });
+
+        // Проверка окончания раунда
+        if (isPlaying && pickaxesGroup.countActive() === 0) {
+            endRound();
+        }
+    }
+
+    // Функция создания цветных пиксельных квадратов вместо картинок
+    function createPixelTexture(scene, key, color, isPickaxe = false) {
+        let graphics = scene.make.graphics({ x: 0, y: 0, add: false });
+        graphics.fillStyle(Phaser.Display.Color.HexStringToColor(color).color, 1);
         
-        for (let r = 0; r < ROWS; r++) {
-            gridMatrix[r] = [];
-            for (let c = 0; c < COLS; c++) {
-                // Случайный тип блока (чем глубже, тем выше шанс ценной руды)
-                let blockType = 'dirt';
-                let rand = Math.random();
+        if (isPickaxe) {
+            // Рисуем подобие кирки (Т-образная форма)
+            graphics.fillRect(10, 0, 20, 8);
+            graphics.fillRect(18, 8, 4, 24);
+        } else {
+            // Обычный блок руды с рамкой
+            graphics.fillRect(2, 2, 60, 60);
+            graphics.lineStyle(2, 0x000000, 0.5);
+            graphics.strokeRect(0, 0, 64, 64);
+        }
+        
+        graphics.generateTexture(key, 64, 64);
+    }
+
+    function generateGrid() {
+        blocksGroup.clear(true, true);
+        const types = ['dirt', 'dirt', 'stone', 'stone', 'gold', 'diamond'];
+        
+        for (let r = 0; r < 6; r++) {
+            for (let c = 0; c < 5; c++) {
+                // Чем ниже строка, тем круче руда
+                let type = types[Math.floor(Math.random() * (r + 1 > 6 ? 6 : r + 1))];
+                if (!type) type = 'dirt';
                 
-                if (r >= 3) {
-                    if (rand < 0.15) blockType = 'diamond';
-                    else if (rand < 0.4) blockType = 'gold';
-                    else if (rand < 0.8) blockType = 'stone';
-                    else blockType = 'bedrock';
-                } else {
-                    if (rand < 0.05) blockType = 'gold';
-                    else if (rand < 0.3) blockType = 'stone';
-                    else blockType = 'dirt';
-                }
-
-                gridMatrix[r][c] = blockType;
-
-                const cell = document.createElement('div');
-                cell.id = `cell-${r}-${c}`;
-                cell.className = `block-cell ${BLOCK_TYPES[blockType].class}`;
-                cell.innerText = BLOCK_TYPES[blockType].icon;
-                mineGrid.appendChild(cell);
+                let x = c * 76 + 48;
+                let y = r * 68 + 120;
+                
+                let block = blocksGroup.create(x, y, type);
+                block.setData('type', type);
+                block.refreshBody();
             }
         }
     }
 
-    // Управление ставками
-    function adjustBet(action) {
-        if (isPlaying) return;
-        
-        if (action === 'min') currentBet = 10;
-        else if (action === 'max') currentBet = balance;
-        else {
-            currentBet += action;
+    // Логика удара кирки о блок
+    function hitBlock(pickaxe, block) {
+        let type = block.getData('type');
+        let winMultiplier = 0;
+
+        // Начисление за разные типы руды
+        if (type === 'dirt') winMultiplier = 0.1;
+        else if (type === 'stone') winMultiplier = 0.5;
+        else if (type === 'gold') winMultiplier = 2;
+        else if (type === 'diamond') winMultiplier = 10;
+
+        let winAmount = Math.floor(bet * winMultiplier);
+        if (winAmount > 0) {
+            balance += winAmount;
+            document.getElementById('balance-txt').innerText = `$${balance.toLocaleString()}`;
         }
 
-        // Ограничители
-        if (currentBet < 10) currentBet = 10;
-        if (currentBet > balance) currentBet = balance;
-        
-        betTab.innerText = currentBet;
+        // Создаем быстрый эффект «взрыва» блока и удаляем его
+        let x = block.x;
+        let y = block.y;
+        block.destroy();
+
+        // Кирка немного замедляется при ударе, имитируя сопротивление
+        pickaxe.setVelocityY(pickaxe.body.velocity.y * 0.85);
     }
 
-    // Главный игровой процесс
-    async function startDigging() {
-        if (isPlaying || balance < currentBet) {
-            if (balance < currentBet) winDisplay.innerText = 'Недостаточно денег!';
-            return;
-        }
+    // Нажатие на кнопку Спина
+    function pressSpin() {
+        if (isPlaying || balance < bet) return;
 
         isPlaying = true;
-        spinBtn.disabled = true;
-        winDisplay.innerText = '';
-        
-        balance -= currentBet;
-        balanceTab.innerText = `$${balance}`;
+        document.getElementById('spin-btn').disabled = true;
 
-        // Пересоздаем шахту перед падением кирок
-        createMine();
+        balance -= bet;
+        document.getElementById('balance-txt').innerText = `$${balance.toLocaleString()}`;
 
-        // 1. Генерируем случайные кирки сверху
-        let activePickaxes = [];
-        const pickCells = pickaxeRow.children;
-        for (let c = 0; c < COLS; c++) {
-            let randPick = PICKAXES[Math.floor(Math.random() * PICKAXES.length)];
-            activePickaxes.push(randPick);
-            pickCells[c].innerText = randPick.icon;
+        // Пересобираем шахту
+        generateGrid();
+
+        // Сбрасываем кирки сверху экрана с разной скоростью падения
+        for (let c = 0; c < 5; c++) {
+            let x = c * 76 + 48;
+            let y = -50 - (Math.random() * 100); // Разная высота старта для эффекта очереди
+            
+            let pick = pickaxesGroup.create(x, y, 'pickaxe');
+            pick.setOrigin(0.5);
+            // Физика падения гравитации вниз
+            pick.setVelocityY(300 + Math.random() * 150); 
+            pick.setGravityY(400); 
         }
-
-        // Задержка перед началом симуляции падения
-        await new Promise(resolve => setTimeout(resolve, 600));
-
-        // 2. Кирки копают вниз по очереди или одновременно (по строкам)
-        let totalWin = 0;
-
-        for (let r = 0; r < ROWS; r++) {
-            for (let c = 0; c < COLS; c++) {
-                let pick = activePickaxes[c];
-                
-                // Кирка копает, только если её силы хватает на текущую глубину
-                if (pick.power > r) {
-                    let blockType = gridMatrix[r][c];
-                    let cell = document.getElementById(`cell-${r}-${c}`);
-                    
-                    if (blockType !== 'bedrock') {
-                        cell.classList.add('digging');
-                        
-                        // Считаем деньги за блок
-                        let reward = currentBet * BLOCK_TYPES[blockType].payout;
-                        totalWin += reward;
-
-                        // Эффект разрушения
-                        await new Promise(resolve => setTimeout(resolve, 150));
-                        cell.innerText = '💥';
-                        cell.className = 'block-cell';
-                        
-                        // Обновляем счетчик на лету
-                        if(reward > 0) {
-                            winDisplay.innerText = `Разрушено! +$${totalWin.toFixed(0)}`;
-                        }
-                    } else {
-                        // Бедрок останавливает слабую кирку
-                        cell.innerText = '🔒';
-                        activePickaxes[c].power = 0; 
-                    }
-                }
-            }
-            await new Promise(resolve => setTimeout(resolve, 200));
-        }
-
-        // 3. Начисление выигрыша
-        if (totalWin > 0) {
-            balance += Math.floor(totalWin);
-            balanceTab.innerText = `$${balance}`;
-            winDisplay.innerText = `Итог: +$${Math.floor(totalWin)}`;
-        } else {
-            winDisplay.innerText = 'Ничего не добыто...';
-        }
-
-        isPlaying = false;
-        spinBtn.disabled = false;
     }
 
-    // Первичный запуск экрана
-    createMine();
+    function endRound() {
+        isPlaying = false;
+        document.getElementById('spin-btn').disabled = false;
+    }
+
+    // Функции интерфейса для ставок
+    function changeBet(type) {
+        if (isPlaying) return;
+        if (type === 'min') bet = 10;
+        else if (type === 'max') bet = balance;
+        else bet += type;
+
+        if (bet < 10) bet = 10;
+        if (bet > balance) bet = balance;
+
+        document.getElementById('bet-txt').innerText = bet.toLocaleString();
+    }
 </script>
+
 </body>
 </html>
